@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Snake Game Deluxe - Customizable</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: "Segoe UI", sans-serif;
+        background: linear-gradient(to right, #4facfe, #00f2fe);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+      }
+      #menuPage,
+      #gamePage {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        width: 100%;
+      }
+      #menuPage.active,
+      #gamePage.active {
+        display: flex;
+      }
+      h1 {
+        font-size: 3rem;
+        color: white;
+        margin-bottom: 20px;
+      }
+      select,
+      button,
+      input[type="color"] {
+        padding: 10px 20px;
+        margin: 10px;
+        font-size: 1rem;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+      }
+      button {
+        background-color: #fff;
+        color: #007bff;
+        font-weight: bold;
+        transition: 0.3s;
+      }
+      button:hover {
+        background-color: #007bff;
+        color: #fff;
+      }
+      canvas {
+        background: #000;
+        border: 4px solid white;
+      }
+      #score {
+        margin-top: 15px;
+        font-size: 20px;
+        color: white;
+      }
+      #controls button {
+        font-size: 24px;
+        padding: 10px;
+        margin: 5px;
+      }
+      #controls {
+        margin-top: 20px;
+      }
+      label {
+        color: white;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="menuPage" class="active">
+      <h1>🐍 Game Game Ulo</h1>
+      <label>Pilih Warno Ulo:</label>
+      <input type="color" id="customColor" value="#00ff00" />
+      <label>Biso Pilih Gambar Dewwk:</label>
+      <input type="file" id="skinImage" accept="image/*" />
+      <button onclick="goToGame()">Mulai</button>
+    </div>
+
+    <div id="gamePage">
+      <canvas id="game" width="400" height="400"></canvas>
+      <div id="score">Score: 0</div>
+      <div id="controls">
+        <button onclick="setDirection('UP')">⬆️</button><br />
+        <button onclick="setDirection('LEFT')">⬅️</button>
+        <button onclick="setDirection('DOWN')">⬇️</button>
+        <button onclick="setDirection('RIGHT')">➡️</button>
+      </div>
+    </div>
+
+    <script>
+      const menuPage = document.getElementById("menuPage");
+      const gamePage = document.getElementById("gamePage");
+      const canvas = document.getElementById("game");
+      const ctx = canvas.getContext("2d");
+      const box = 40;
+      const rows = canvas.height / box;
+      const cols = canvas.width / box;
+
+      let snake = [];
+      let direction = "RIGHT";
+      let food = {};
+      let score = 0;
+      let lastTime = 0;
+      let speed = 100;
+      let snakeColor = "#00ff00";
+      let playing = false;
+      let skinImg = null;
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowUp") setDirection("UP");
+        if (e.key === "ArrowDown") setDirection("DOWN");
+        if (e.key === "ArrowLeft") setDirection("LEFT");
+        if (e.key === "ArrowRight") setDirection("RIGHT");
+      });
+
+      function setDirection(dir) {
+        if (dir === "UP" && direction !== "DOWN") direction = "UP";
+        if (dir === "DOWN" && direction !== "UP") direction = "DOWN";
+        if (dir === "LEFT" && direction !== "RIGHT") direction = "LEFT";
+        if (dir === "RIGHT" && direction !== "LEFT") direction = "RIGHT";
+      }
+
+      document
+        .getElementById("skinImage")
+        .addEventListener("change", function (e) {
+          const file = e.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = function (event) {
+              skinImg = new Image();
+              skinImg.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+          }
+        });
+
+      function goToGame() {
+        snakeColor = document.getElementById("customColor").value;
+        menuPage.classList.remove("active");
+        gamePage.classList.add("active");
+        startGame();
+      }
+
+      function startGame() {
+        snake = [{ x: 10, y: 10 }];
+        direction = "RIGHT";
+        score = 0;
+        document.getElementById("score").textContent = "Score: 0";
+        spawnFood();
+        playing = true;
+        requestAnimationFrame(update);
+      }
+
+      function spawnFood() {
+        food = {
+          x: Math.floor(Math.random() * cols),
+          y: Math.floor(Math.random() * rows),
+        };
+      }
+
+      function update(timestamp) {
+        if (!playing) return;
+
+        if (timestamp - lastTime > speed) {
+          lastTime = timestamp;
+          move();
+          draw();
+        }
+
+        requestAnimationFrame(update);
+      }
+
+      function move() {
+        let head = { ...snake[0] };
+        if (direction === "UP") head.y--;
+        if (direction === "DOWN") head.y++;
+        if (direction === "LEFT") head.x--;
+        if (direction === "RIGHT") head.x++;
+
+        if (
+          head.x < 0 ||
+          head.x >= cols ||
+          head.y < 0 ||
+          head.y >= rows ||
+          snake.some((s) => s.x === head.x && s.y === head.y)
+        ) {
+          alert("Game Over! Your score: " + score);
+          playing = false;
+          menuPage.classList.add("active");
+          gamePage.classList.remove("active");
+          return;
+        }
+
+        snake.unshift(head);
+
+        if (head.x === food.x && head.y === food.y) {
+          score++;
+          document.getElementById("score").textContent = "Score: " + score;
+          spawnFood();
+        } else {
+          snake.pop();
+        }
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (skinImg) {
+          for (let segment of snake) {
+            ctx.drawImage(skinImg, segment.x * box, segment.y * box, box, box);
+          }
+        } else {
+          ctx.fillStyle = snakeColor;
+          for (let segment of snake) {
+            ctx.fillRect(segment.x * box, segment.y * box, box, box);
+          }
+        }
+
+        ctx.fillStyle = "yellow";
+        ctx.fillRect(food.x * box, food.y * box, box, box);
+      }
+    </script>
+  </body>
+</html>
